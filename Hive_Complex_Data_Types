@@ -1,0 +1,149 @@
+Hive Complex Data Types:-
+Array:-
+Sample Input File
+$ cat array_ip.txt
+06/15/2017      Karnataka       23.5,24.3,28.5,29.5
+06/15/2017      Maharastra      25.3,26.4,27.3,28.3
+06/15/2017      Telangana       24.1,28.3,30.1,32.5
+06/15/2017      Andhra Pradesh  26.2,27.4,29.6,32.1
+06/15/2017      Tamilnadu       27.2,29.3,29.9,31.9
+06/15/2017      Kerala  24.2,27.2,28.2,28.7
+Create table in Hive default database:- 
+hive> create table state_wide_temp(day string,state string,avg_temp array<double>)
+    > row format delimited
+    > fields terminated by '\t'
+    > collection items terminated by ',';
+OK
+Time taken: 1.261 seconds
+Load Data in the Table:-
+hive> load data local inpath 'array_ip.txt' overwrite into table state_wide_temp;
+Loading data to table practice.state_wide_temp
+Table practice.state_wide_temp stats: [numFiles=1, numRows=0, totalSize=249, rawDataSize=0]
+OK
+Time taken: 1.961 seconds
+Check if the data is properly loaded or not:-
+hive> select * from state_wide_temp;
+OK
+06/15/2017      Karnataka       [23.5,24.3,28.5,29.5]
+06/15/2017      Maharastra      [25.3,26.4,27.3,28.3]
+06/15/2017      Telangana       [24.1,28.3,30.1,32.5]
+06/15/2017      Andhra Pradesh  [26.2,27.4,29.6,32.1]
+06/15/2017      Tamilnadu       [27.2,29.3,29.9,31.9]
+06/15/2017      Kerala  [24.2,27.2,28.2,28.7]
+Time taken: 1.568 seconds, Fetched: 6 row(s)
+To check the structure of the table:-
+hive> describe state_wide_temp;
+OK
+day                     string
+state                   string
+avg_temp                array<double>
+Time taken: 0.309 seconds, Fetched: 3 row(s)
+To retrieve data from the array data type use index:-
+hive> select avg_temp[0] as temp_at_8 from state_wide_temp;
+OK
+23.5
+25.3
+24.1
+26.2
+27.2
+24.2
+Time taken: 0.316 seconds, Fetched: 6 row(s)
+hive> select avg_temp[0] as temp_at_8,avg_temp[1] as temp_at_9 from state_wide_temp;
+OK
+23.5    24.3
+25.3    26.4
+24.1    28.3
+26.2    27.4
+27.2    29.3
+24.2    27.2
+Time taken: 0.215 seconds, Fetched: 6 row(s)
+
+Map:-
+sample input file :-
+$ cat dataset_school_data.txt
+SSC     Nalgonda        2017:1500,2016:1467,2015:1387
+SSC     Suryapet        2017:1356,2016:1222,2015:1097
+SSC     KarimNagar      2017:1567,2016:1456,2015:1467
+SSC     Hyderabad       2017:1456,2016:3567,2015:3456
+SSC     RangaReddy      2017:1345,2016:2344,2015:2347
+create table in Hive:-
+hive> create table district_wise_ssc_std_map(board string,district string,total_students_yearbyyear map<int,int>)
+    > row format delimited
+    > fields terminated by '\t'
+    > collection items terminated by ','
+    > map keys terminated by ':';
+OK
+Time taken: 0.143 seconds
+Load the data into Hive table:-
+hive> load data local inpath 'dataset_school_data.txt' overwrite into table district_wise_ssc_std_map;
+Loading data to table practice.district_wise_ssc_std_map
+Table practice.district_wise_ssc_std_map stats: [numFiles=1, numRows=0, totalSize=220, rawDataSize=0]
+OK
+Time taken: 0.609 seconds
+Check if the data is properly loaded or not:-
+hive> select * from district_wise_ssc_std_map;
+OK
+SSC     Nalgonda        {2017:1500,2016:1467,2015:1387}
+SSC     Suryapet        {2017:1356,2016:1222,2015:1097}
+SSC     KarimNagar      {2017:1567,2016:1456,2015:1467}
+SSC     Hyderabad       {2017:1456,2016:3567,2015:3456}
+SSC     RangaReddy      {2017:1345,2016:2344,2015:2347}
+Time taken: 0.111 seconds, Fetched: 5 row(s)
+To get the data from map datatype use key name in square brackets:-
+hive> select board,district,total_students_yearbyyear[2017] as 2017_data from district_wise_ssc_std_map;
+OK
+SSC     Nalgonda        1500
+SSC     Suryapet        1356
+SSC     KarimNagar      1567
+SSC     Hyderabad       1456
+SSC     RangaReddy      1345
+Time taken: 0.181 seconds, Fetched: 5 row(s)
+hive> select board,district,total_students_yearbyyear[2016] as 2016_data from district_wise_ssc_std_map;
+OK
+SSC     Nalgonda        1467
+SSC     Suryapet        1222
+SSC     KarimNagar      1456
+SSC     Hyderabad       3567
+SSC     RangaReddy      2344
+Time taken: 0.188 seconds, Fetched: 5 row(s)
+
+Struct:-
+Sample Input file:-
+$ cat dataset_bikes_struct.txt
+Yamaha Ray-Z    Aircooled,149.0,14.0,0
+Hero Mastro     Aircooled,155.0,14.8,0
+Tvs Vego        Aircooled,159.0,15.4,0
+Suziki Swish    Dtsi-Aircooled,149.0,15.6,0
+Honda Dio       Fule-injection,223.0,20.25,0
+
+Create table in Hive:-
+hive> create table mybikes_struct_ex(bike_name string,bike_features struct<engine_types:string,cc:float,power:float,gears:int>)
+    > row format delimited
+    > fields terminated by '\t'
+    > collection items terminated by ',';
+OK
+Time taken: 18.674 seconds
+Load data in the Hive table:-
+hive> load data local inpath 'dataset_bikes_struct.txt' overwrite into table mybikes_struct_ex;
+Loading data to table practice.mybikes_struct_ex
+Table practice.mybikes_struct_ex stats: [numFiles=1, numRows=0, totalSize=183, rawDataSize=0]
+OK
+Time taken: 4.133 seconds
+To check if data is properly loaded or not:-
+hive> select * from mybikes_struct_ex;
+OK
+Yamaha Ray-Z    {"engine_types":"Aircooled","cc":149.0,"power":14.0,"gears":0}
+Hero Mastro     {"engine_types":"Aircooled","cc":155.0,"power":14.8,"gears":0}
+Tvs Vego        {"engine_types":"Aircooled","cc":159.0,"power":15.4,"gears":0}
+Suziki Swish    {"engine_types":"Dtsi-Aircooled","cc":149.0,"power":15.6,"gears":0}
+Honda Dio       {"engine_types":"Fule-injection","cc":223.0,"power":20.25,"gears":0}
+Time taken: 2.334 seconds, Fetched: 5 row(s)
+To get the data from the struct column use . notation:-
+hive> select bike_name,bike_features.engine_types as bike_feature from mybikes_struct_ex;
+OK
+Yamaha Ray-Z    Aircooled
+Hero Mastro     Aircooled
+Tvs Vego        Aircooled
+Suziki Swish    Dtsi-Aircooled
+Honda Dio       Fule-injection
+Time taken: 0.445 seconds, Fetched: 5 row(s)
