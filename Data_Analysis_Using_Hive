@@ -1,0 +1,96 @@
+Copy the input file from the local file system to HDFS
+
+$ wc -l ibm.txt
+99 ibm.txt
+$ tail ibm.txt
+46	Yes	Travel_Rarely	669	Sales	9	2	Medical	1	118	3	Male	64	2	3	Sales Executive	4	Single	9619	13596	1	Y	No	16	3	4	80	0	9	3	3	9	8	4	7
+40	No	Travel_Frequently	530	Research & Development	1	4	Life Sciences	1	119	3	Male	78	2	4	Healthcare Representative	2	Married	13503	14115	1	Y	No	22	4	4	80	1	22	3	2	22	3	11	11
+51	No	Travel_Rarely	632	Sales	21	4	Marketing	1	120	3	Male	71	3	2	Sales Executive	4	Single	5441	8423	0	Y	Yes	22	4	4	80	0	11	2	1	10	7	1	0
+30	No	Travel_Rarely	1334	Sales	4	2	Medical	1	121	3	Female	63	2	2	Sales Executive	2	Divorced	5209	19760	1	Y	Yes	12	3	2	80	3	11	4	2	11	8	2	7
+46	No	Travel_Frequently	638	Research & Development	1	3	Medical	1	124	3	Male	40	2	3	Healthcare Representative	1	Married	10673	3142	2	Y	Yes	13	3	3	80	1	21	5	2	10	9	9	5
+32	No	Travel_Rarely	1093	Sales	6	4	Medical	1	125	2	Male	87	3	2	Sales Executive	3	Single	5010	24301	1	Y	No	16	3	1	80	0	12	0	3	11	8	5	7
+54	No	Travel_Rarely	1217	Research & Development	2	4	Technical Degree	1	126	1	Female	60	3	3	Research Director	3	Married	13549	24001	9	Y	No	12	3	1	80	1	16	5	1	4	3	0	3
+24	No	Travel_Rarely	1353	Sales	3	2	Other	1	128	1	Female	33	3	2	Sales Executive	3	Married	4999	17519	0	Y	No	21	4	1	80	1	4	2	2	3	2	0	2
+28	No	Non-Travel	120	Sales	4	3	Medical	1	129	2	Male	43	3	2	Sales Executive	3	Married	4221	8863	1	Y	No	15	3	2	80	0	5	3	4	5	4	0	4
+58	No	Travel_Rarely	682	Sales	10	4	Medical	1	131	4	Male	37	3	4	Sales Executive	3	Single	13872	24409	0	Y	No	13	3	3	80	0	38	1	2	37	10	1	8
+$ hadoop fs -put ibm.txt ibm.txt
+$ hadoop fs -ls
+Found 1 items
+-rw-r--r--   1 cloudera cloudera      15191 2017-06-10 10:15 ibm.txt
+$ hadoop fs -cat ibm.txt|wc -l
+99
+
+Cleanse the data using Pig
+grunt> inp_relation = load 'ibm.txt' using PigStorage('\t');
+grunt> projection_relation = foreach inp_relation generate (CHARARRAY)$4 as dept,(INT)$9 as emp_num,(CHARARRAY)$11 as gender,(int)$18 as income,(CHARARRAY)$22 as ot,(int)$33 as last_promo;
+grunt> validation_relation = filter projection_relation by (dept!= 'NULL') AND NOT(dept matches '') AND (emp_num is NOT NULL) AND (gender!='NULL') AND NOT(gender matches '') AND (income IS NOT NULL) AND (ot!= 'NULL') AND NOT (ot matches '') AND (last_promo IS NOT NULL);
+
+Send cleansing data to Hive using HCatalog:-
+Start the Hive Metastore service:-
+$ hive --service metastore
+Starting Hive Metastore Server
+
+Create Hive table with the same schema as that of Pig:-
+hive>create table practice.ibm_data_analysis(dept string,emp_num int,gender string,income int,ot string,last_promo int)
+row format delimited
+fields terminated by '\t'
+stored as textfile;
+
+Check if there is any data available in the table:-
+hive> select * from practice.ibm_data_analysis;
+OK
+Time taken: 0.22 seconds
+
+Now load the data from the pig into the Hive table using HCatalog function HCatStorer:-
+grunt> STORE validation_relation into 'practice.ibm_data_analysis' using org.apache.hive.hcatalog.pig.HCatStorer();
+
+Now Check if there is data available in the Hive Table:-
+hive> select * from practice.ibm_data_analysis limit 3;
+OK
+Sales   1       Female  5993    Yes     0
+Research & Development  2       Male    5130    No      1
+Research & Development  4       Male    2090    Yes     0
+Time taken: 1.689 seconds, Fetched: 3 row(s)
+
+Analysis on the Validated Data:-
+Find out the employee number and dept of employee who does overtime?
+hive> select emp_num,dept from practice.ibm_data_analysis where ot='Yes';
+Time taken: 1.302 seconds, Fetched: 33 row(s)
+hive> select count(*) from  practice.ibm_data_analysis where ot='Yes';
+OK
+33
+Time taken: 267.349 seconds, Fetched: 1 row(s)
+
+Find out 5 employees who received the promotion recently
+hive> select emp_num,dept,last_promo from practice.ibm_data_analysis order by last_promo ASC limit 5;
+OK
+1       Sales   0
+129     Sales   0
+128     Sales   0
+126     Research & Development  0
+116     Research & Development  0
+Time taken: 192.744 seconds, Fetched: 5 row(s)
+
+Find out last 5 employees based on last promotion received?
+OK
+58      Research & Development  15
+80      Research & Development  13
+83      Research & Development  12
+119     Research & Development  11
+117     Research & Development  10
+Time taken: 181.764 seconds, Fetched: 5 row(s)
+
+Find out the list of employee whose income is more than the average income of all the employee’s present in the same department?
+hive>select a.emp_num,a.dept,a.income from practice.ibm_data_analysis a
+	 inner join
+	 (select dept,avg(income) as avg_income_by_dept from practice.ibm_data_analysis group by dept)b
+	 on (a.dept = b.dept)
+	 where (a.income > b.avg_income_by_dept)
+Time taken: 521.007 seconds, Fetched: 33 row(s)
+
+
+
+
+
+
+
