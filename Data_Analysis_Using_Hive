@@ -81,12 +81,33 @@ OK
 Time taken: 181.764 seconds, Fetched: 5 row(s)
 
 Find out the list of employee whose income is more than the average income of all the employee’s present in the same department?
+hive> select dept,avg(income) as avg_income_by_dept from practice.ibm_data_analysis group by dept;
+OK
+Human Resources 5021.0
+Research & Development  5863.070422535211
+Sales   6624.37037037037
+Time taken: 389.284 seconds, Fetched: 3 row(s)
 hive>select a.emp_num,a.dept,a.income from practice.ibm_data_analysis a
 	 inner join
 	 (select dept,avg(income) as avg_income_by_dept from practice.ibm_data_analysis group by dept)b
 	 on (a.dept = b.dept)
 	 where (a.income > b.avg_income_by_dept)
+Sample Output:-
+112     Research & Development  7260
+119     Research & Development  13503
+124     Research & Development  10673
+126     Research & Development  13549
+23      Sales   15427
+35      Sales   6825
+38      Sales   18947
+56      Sales   8726
+74      Sales   9069
+81      Sales   7637
+106     Sales   10239
+118     Sales   9619
+131     Sales   13872
 Time taken: 521.007 seconds, Fetched: 33 row(s)
+
 
 
 
